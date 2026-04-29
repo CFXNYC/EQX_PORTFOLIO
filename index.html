@@ -444,6 +444,82 @@ body.dark .preset-btn { background: #1e1e1e; border-color: #2a2a2a; color: #555;
 body.dark .preset-btn:hover { background: #f0f0f0; color: #111; border-color: #f0f0f0; }
 body.dark .preset-btn.active { background: #f0f0f0; color: #111; border-color: #f0f0f0; }
 
+/* ── SEARCH BAR ──────────────────────────────────────────── */
+#search-container {
+  position: relative;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  background: #f7f7f7;
+}
+#club-search {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.04em;
+  border: 1px solid #ddd;
+  border-radius: 1px;
+  outline: none;
+  background: #fff;
+  color: #1a1a1a;
+  transition: border-color 0.12s;
+}
+#club-search:focus { border-color: #aaa; }
+#club-search::placeholder { color: #bbb; }
+#search-results {
+  position: absolute;
+  top: calc(100% - 8px);
+  left: 10px;
+  right: 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 1px 1px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 2000;
+  display: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.search-item {
+  padding: 7px 10px;
+  font-size: 10px;
+  cursor: pointer;
+  color: #555;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.1s, color 0.1s;
+  display: flex; align-items: baseline; gap: 0; white-space: nowrap; overflow: hidden;
+}
+.search-item:last-child { border-bottom: none; }
+.search-item:hover, .search-item.search-active { background: #1a1a1a; color: #fff; }
+.search-club { font-weight: 600; color: #1a1a1a; flex-shrink: 0; }
+.search-sep { color: #ccc; padding: 0 5px; flex-shrink: 0; }
+.search-region { font-size: 8.5px; letter-spacing: 0.07em; text-transform: uppercase; color: #aaa; overflow: hidden; text-overflow: ellipsis; }
+.search-item:hover .search-club,
+.search-item.search-active .search-club { color: #fff; }
+.search-item:hover .search-sep,
+.search-item.search-active .search-sep,
+.search-item:hover .search-region,
+.search-item.search-active .search-region { color: rgba(255,255,255,0.6); }
+
+body.dark #search-container { background: #0d0d0d; border-color: #222; }
+body.dark #club-search { background: #1a1a1a; border-color: #2a2a2a; color: #f0f0f0; }
+body.dark #club-search:focus { border-color: #555; }
+body.dark #club-search::placeholder { color: #444; }
+body.dark #search-results { background: #141414; border-color: #2a2a2a; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+body.dark .search-item { color: #888; border-color: #1e1e1e; }
+body.dark .search-club { color: #e0e0e0; }
+body.dark .search-sep { color: #333; }
+body.dark .search-region { color: #555; }
+body.dark .search-item:hover, body.dark .search-item.search-active { background: #f0f0f0; color: #111; }
+body.dark .search-item:hover .search-club,
+body.dark .search-item.search-active .search-club { color: #111; }
+body.dark .search-item:hover .search-sep,
+body.dark .search-item.search-active .search-sep,
+body.dark .search-item:hover .search-region,
+body.dark .search-item.search-active .search-region { color: #666; }
+
 /* ── MOBILE ──────────────────────────────────────────────── */
 #panel-handle { display: none; }
 
@@ -567,6 +643,18 @@ body.dark .preset-btn.active { background: #f0f0f0; color: #111; border-color: #
         <button class="filter-btn" data-macro="NYC"       onclick="filterMacro('NYC')">NYC</button>
         <button class="filter-btn" data-macro="NORTHEAST" onclick="filterMacro('NORTHEAST')">Northeast</button>
         <button class="filter-btn" data-macro="NORTH"     onclick="filterMacro('NORTH')">North</button>
+      </div>
+
+      <div id="search-container">
+        <input
+          type="text"
+          id="club-search"
+          placeholder="Search club..."
+          autocomplete="off"
+          oninput="handleSearch()"
+          onkeydown="handleKeyNav(event)"
+        />
+        <div id="search-results"></div>
       </div>
 
       <div id="panel-content"></div>
@@ -978,8 +1066,18 @@ const HUB_ICON   = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAA
 const CLUB_ICON  = 'data:image/png;base64,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';
 
 // ── ICONS ──────────────────────────────────────────────────
+// Scale marker size based on current zoom so solo/sparse clusters
+// don't appear oversized at national-view zoom levels.
+function scaledMarkerSize(base) {
+  const z = map.getZoom() || 4;
+  if (z >= 10) return base;
+  if (z >= 8)  return Math.max(18, Math.round(base * 0.75));
+  if (z >= 6)  return Math.max(14, Math.round(base * 0.60));
+  return Math.max(12, Math.round(base * 0.50));
+}
+
 function makeHubIcon(color) {
-  const s = HUB_SIZE, img = Math.round(s * 0.88);
+  const s = scaledMarkerSize(HUB_SIZE), img = Math.round(s * 0.88);
   return L.divIcon({
     className: '',
     html: `<div style="
@@ -993,7 +1091,7 @@ function makeHubIcon(color) {
   });
 }
 function makeClubIcon(color) {
-  const s = CLUB_SIZE, img = Math.round(s * 0.88);
+  const s = scaledMarkerSize(CLUB_SIZE), img = Math.round(s * 0.88);
   return L.divIcon({
     className:'',
     html:`<div style="
@@ -1114,7 +1212,7 @@ function buildRegionLayers() {
       marker._regionId    = region.id;
 
       marker.bindTooltip(
-        `<strong>${name}</strong>${isHub ? ' <span style="opacity:0.6;font-size:9px">HUB</span>' : ''}<br/><span style="font-size:10px;color:#ccc">${region.name}</span>`,
+        `<strong>${name}</strong>${(_clubDataIndex[name]?.educator_count > 0) ? ' 🧠' : ''}${isHub ? ' <span style="opacity:0.6;font-size:9px">HUB</span>' : ''}<br/><span style="font-size:10px;color:#ccc">${region.name}</span>`,
         { direction:'top', offset:[0, isHub ? -20 : -12] }
       );
       marker.on('click', () => {
@@ -1138,7 +1236,7 @@ function buildRegionLayers() {
               Strategy: <strong>${region.strategy}</strong><br/>
               ${cd.educator ? `Educator: <strong>${cd.educator}</strong>${cd.job_title ? ` &mdash; ${cd.job_title}` : ''}<br/>` : ''}
               ${hasCoachData ? `Coach: <strong>${cd.coach||0}</strong> &nbsp;&middot;&nbsp; Coach+: <strong>${cd.coach_plus||0}</strong> &nbsp;&middot;&nbsp; Coach X: <strong>${cd.coach_x||0}</strong><br/>Total Coaches: <strong>${cd.total_coaches||0}</strong><br/>` : ''}
-              ${cd.educator_count ? `Educator Count: <strong>${cd.educator_count}</strong><br/>` : ''}
+              ${cd.educator_count > 0 ? `Educators: <strong>${cd.educator_count}</strong> 🧠<br/>` : ''}
             </div>
           </div>`)
           .openOn(map);
@@ -1169,7 +1267,7 @@ function renderSidebar(filter='ALL') {
       const mi = (rM/1609.34).toFixed(1);
       const centroid = layer ? layer.centroid : null;
       const tags  = region.clubs.filter(c=>COORDS[c]).map(c=>
-        `<span class="club-tag${HUB_CLUBS.has(c)?' is-hub':''}" onclick="flyToClub('${c.replace(/'/g,"\\'")}',event)" title="Zoom to ${c}">${c}</span>`).join('');
+        `<span class="club-tag${HUB_CLUBS.has(c)?' is-hub':''}" onclick="flyToClub('${c.replace(/'/g,"\\'")}',event)" title="Zoom to ${c}">${c}${(_clubDataIndex[c]?.educator_count > 0) ? ' 🧠' : ''}</span>`).join('');
       html += `
         <div class="region-card" id="card-${region.id}" style="border-left-color:${COLORS[region.macro]}" onclick="activateRegion('${region.id}')">
           <div class="card-header">
@@ -1265,13 +1363,15 @@ window.flyToClub = function(clubName, event) {
     : null;
 
   map.flyTo(coords, 15, { animate: true, duration: 0.8 });
+  const _flyEd = _clubDataIndex[clubName];
   L.popup({ maxWidth: 240, closeButton: false, autoClose: true, closeOnClick: true })
     .setLatLng(coords)
     .setContent(`<div class="popup-inner" style="padding:10px 14px">
-      <div class="popup-club" style="font-size:12px">${clubName}</div>
+      <div class="popup-club" style="font-size:12px">${clubName}${(_flyEd?.educator_count > 0) ? ' 🧠' : ''}</div>
       ${region ? `<div class="popup-region">${region.name}</div>` : ''}
       ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
       ${distToHub ? `<div class="popup-meta" style="margin-top:6px">Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong></div>` : ''}
+      ${(_flyEd?.educator_count > 0) ? `<div class="popup-meta" style="margin-top:4px">Educators: <strong>${_flyEd.educator_count}</strong> 🧠</div>` : ''}
     </div>`)
     .openOn(map);
 };
@@ -1769,8 +1869,99 @@ async function initMapData() {
   }
 }
 
+// ── CLUB SEARCH ────────────────────────────────────────────
+let _searchActiveIdx = -1;
+
+window.handleSearch = function() {
+  const input   = document.getElementById('club-search');
+  const results = document.getElementById('search-results');
+  const query   = input.value.trim().toLowerCase();
+  _searchActiveIdx = -1;
+
+  if (!query) {
+    results.style.display = 'none';
+    results.innerHTML = '';
+    return;
+  }
+
+  const matches = Object.keys(COORDS)
+    .filter(name => {
+      if (name === '_init') return false;
+      if (name.toLowerCase().includes(query)) return true;
+      const entry = CLUB_REGION[name];
+      if (!entry) return false;
+      const rName  = (entry.region?.name  || '').toLowerCase();
+      const rMacro = (entry.region?.macro || '').toLowerCase();
+      return rName.includes(query) || rMacro.includes(query);
+    })
+    .slice(0, 15);
+
+  if (!matches.length) {
+    results.style.display = 'none';
+    results.innerHTML = '';
+    return;
+  }
+
+  results.innerHTML = matches.map(name => {
+    const brain      = (_clubDataIndex[name]?.educator_count > 0) ? ' 🧠' : '';
+    const entry      = CLUB_REGION[name];
+    const regionLabel = entry?.region?.name || '';
+    const safe       = name.replace(/'/g, "\\'");
+    return `<div class="search-item" data-name="${name}" onmousedown="selectClub('${safe}')">
+      <span class="search-club">${name}${brain}</span>
+      <span class="search-sep">|</span>
+      <span class="search-region">${regionLabel}</span>
+    </div>`;
+  }).join('');
+  results.style.display = 'block';
+};
+
+window.selectClub = function(name) {
+  const input   = document.getElementById('club-search');
+  const results = document.getElementById('search-results');
+  input.value = '';
+  results.style.display = 'none';
+  results.innerHTML = '';
+  _searchActiveIdx = -1;
+  flyToClub(name);
+};
+
+window.handleKeyNav = function(e) {
+  const results = document.getElementById('search-results');
+  const items   = results.querySelectorAll('.search-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _searchActiveIdx = Math.min(_searchActiveIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('search-active', i === _searchActiveIdx));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _searchActiveIdx = Math.max(_searchActiveIdx - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('search-active', i === _searchActiveIdx));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const idx  = _searchActiveIdx >= 0 ? _searchActiveIdx : 0;
+    const item = items[idx];
+    if (item) selectClub(item.dataset.name);
+  } else if (e.key === 'Escape') {
+    results.style.display = 'none';
+    results.innerHTML = '';
+    _searchActiveIdx = -1;
+  }
+};
+
+document.addEventListener('click', function(e) {
+  const container = document.getElementById('search-container');
+  if (container && !container.contains(e.target)) {
+    const results = document.getElementById('search-results');
+    if (results) results.style.display = 'none';
+  }
+});
+
 // ── INIT ───────────────────────────────────────────────────
 buildRegionLayers();
+map.on('zoomend moveend', updateMarkerSizes);
 map.addLayer(clusterGroup);
 renderSidebar();
 const allBtn = document.querySelector('.filter-btn[data-macro="ALL"]');
