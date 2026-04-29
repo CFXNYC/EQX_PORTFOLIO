@@ -671,18 +671,14 @@ body.dark .preset-btn.active { background: #f0f0f0; color: #111; border-color: #
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script>
+// ── API DATA LAYER CONFIG ──────────────────────────────────
+const DATA_URL = "https://default3016677c32d54346ba5e7dd46f6662.60.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4bbf0259c9da4dce95d4358489cad7ee/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=vmIihrkhagLWJ2yAFwDGdqm74d5RgPATjWqXlinZwwc";
+let _lastDataHash = null;
+let _clubDataIndex = {};  // clubName → coach/educator row data
+
 // ── DESIGN TOKENS ──────────────────────────────────────────
 // ── DESIGNATED HUB CLUBS ───────────────────────────────────
-const HUB_CLUBS = new Set([
-  'Market Street','Berkeley','Palo Alto',
-  'Sports Club LA','Sports Club OC','Pasadena','South Bay','La Costa',
-  'Rainier Square',
-  'Austin TX','Highland Park TX','River Oaks','Brickell','Scott Circle DC',
-  'Brooklyn Heights','Wall Street','Park Avenue','Sports Club NY',
-  'Woodbury','Summit','Scarsdale','Dartmouth Street','Greenwich CT',
-  'Rittenhouse','The Loop','Bloomfield Hills',
-  '199 Bay Street','Bishopsgate','W Georgia'
-]);
+const HUB_CLUBS = new Set(); // populated from API
 
 const COLORS = {
   WEST:      '#6F8F95',
@@ -698,8 +694,11 @@ const LIVE_COLORS = {...COLORS};
 let HUB_SIZE  = 40;  // outer diameter px
 let CLUB_SIZE = 26;  // outer diameter px
 
-// ── COORDINATES — Region_Mapping_Table_V2 source of truth ──
+// ── COORDINATES — populated from API ──────────────────────
 const COORDS = {
+  // PLACEHOLDER — overwritten by API on first load. Kept non-empty so
+  // Leaflet has a valid bounds reference before the first fetch resolves.
+  '_init': [38.5, -95.0],
   // BOSTON
   'Dartmouth Street':   [42.3489, -71.0803],
   'Franklin Street':    [42.3577, -71.0546],
@@ -935,6 +934,9 @@ const REGIONS = [
     narrative:'Single-club Vancouver outpost. International market — activation timeline to be set by EFTI leadership.' },
 ];
 
+// Editorial snapshot used as fallback when spreadsheet omits narrative/strategy fields
+const REGIONS_STATIC = REGIONS.slice();
+
 // ── GEO MATH ───────────────────────────────────────────────
 function haversineM(a, b) {
   const R = 6371000, r = Math.PI / 180;
@@ -1045,98 +1047,110 @@ let activeRegionId  = null;
 const CLUB_REGION = {}; // clubName → { region, isHub }
 
 // ── BUILD REGIONS ──────────────────────────────────────────
-REGIONS.forEach(region => {
-  const color = LIVE_COLORS[region.macro];
-  const matched = region.clubs.map(n=>({name:n, coords:COORDS[n]})).filter(c=>c.coords);
-  const coordList = matched.map(c=>c.coords);
-  const centroid  = computeCentroid(coordList);
-  if (!centroid) return;
+function buildRegionLayers() {
+  // Clear existing layers before rebuilding (safe on first run too)
+  clusterGroup.clearLayers();
+  radiusLayer.clearLayers();
+  centroidLayer.clearLayers();
+  Object.keys(regionLayers).forEach(k => delete regionLayers[k]);
+  Object.keys(CLUB_REGION).forEach(k => delete CLUB_REGION[k]);
 
-  const radiusM = computeRadius(centroid, coordList);
+  REGIONS.forEach(region => {
+    const color = LIVE_COLORS[region.macro];
+    const matched = region.clubs.map(n=>({name:n, coords:COORDS[n]})).filter(c=>c.coords);
+    const coordList = matched.map(c=>c.coords);
+    const centroid  = computeCentroid(coordList);
+    if (!centroid) return;
 
-  // Populate club → region lookup
-  matched.forEach(({name}) => {
-    CLUB_REGION[name] = { region, isHub: HUB_CLUBS.has(name) };
-  });
+    const radiusM = computeRadius(centroid, coordList);
 
-  // Radius circle — centroid-computed, NOT hub-centered
-  const circle = L.circle(centroid, {
-    radius: radiusM, color, fillColor: color,
-    fillOpacity: 0.07, weight: 1.5, opacity: 0.45, dashArray: '5 6', interactive: true
-  });
-
-  circle.on('mouseover', () => {
-    if (activeRegionId !== region.id)
-      circle.setStyle({ fillOpacity: 0.16, opacity: 0.80, weight: 2, dashArray: null });
-    const km = (radiusM/1000).toFixed(1), mi = (radiusM/1609.34).toFixed(1);
-    circle.bindTooltip(
-      `<div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;color:#fff">${region.name}</div>
-       <div style="font-size:10px;color:#ccc;margin-bottom:2px">Hub: ${region.hub}</div>
-       <div style="font-size:10px;color:#ccc">${matched.length} clubs</div>
-       <div style="font-size:9px;color:#888;margin-top:4px">Radius: ${mi} mi</div>`,
-      { sticky:true, className:'region-hover-tooltip', direction:'auto' }
-    ).openTooltip();
-  });
-  circle.on('mouseout', () => {
-    circle.unbindTooltip();
-    if (activeRegionId !== region.id)
-      circle.setStyle({ fillOpacity:0.07, opacity:0.45, weight:1.5, dashArray:'5 6' });
-  });
-  circle.on('click', () => activateRegion(region.id));
-  radiusLayer.addLayer(circle);
-
-  // Centroid dot — store ref for live color updates
-  const centroidDot = L.marker(centroid, { icon:makeCentroidIcon(color), interactive:false, zIndexOffset:-100 });
-  centroidLayer.addLayer(centroidDot);
-
-  // Bounds for flyTo
-  const bounds = coordList.length > 1 ? L.latLngBounds(coordList).pad(0.15) : L.latLngBounds([centroid]).pad(0.5);
-
-  // Club markers — collect refs for live updates
-  const markerRefs = [];
-  matched.forEach(({name, coords}) => {
-    const isHub = HUB_CLUBS.has(name);
-    const marker = L.marker(coords, {
-      icon: isHub ? makeHubIcon(color) : makeClubIcon(color),
-      zIndexOffset: isHub ? 1000 : 0
+    // Populate club → region lookup
+    matched.forEach(({name}) => {
+      CLUB_REGION[name] = { region, isHub: HUB_CLUBS.has(name) };
     });
-    marker._regionColor = color;
-    marker._regionId    = region.id;
 
-    marker.bindTooltip(
-      `<strong>${name}</strong>${isHub ? ' <span style="opacity:0.6;font-size:9px">HUB</span>' : ''}<br/><span style="font-size:10px;color:#ccc">${region.name}</span>`,
-      { direction:'top', offset:[0, isHub ? -20 : -12] }
-    );
-    marker.on('click', () => {
-      const mi = (radiusM/1609.34).toFixed(1);
-      const hubCoords = COORDS[region.hub];
-      const distToHub = (!isHub && hubCoords)
-        ? (haversineM(coords, hubCoords) / 1609.34).toFixed(1)
-        : null;
-      L.popup({ maxWidth:280, closeButton:true, offset:[0, isHub?-20:-12] })
-        .setLatLng(coords)
-        .setContent(`<div class="popup-inner">
-          <div class="popup-club">${name}</div>
-          <div class="popup-region">${region.name} &mdash; ${region.macro}</div>
-          ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
-          <div class="popup-meta">
-            Cluster: <strong>${matched.length} clubs</strong><br/>
-            Cluster radius: <strong>${mi} mi</strong><br/>
-            ${distToHub ? `Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong><br/>` : ''}
-            Strategy: <strong>${region.strategy}</strong>
-          </div>
-        </div>`)
-        .openOn(map);
-      activateRegion(region.id, false);
+    // Radius circle — centroid-computed, NOT hub-centered
+    const circle = L.circle(centroid, {
+      radius: radiusM, color, fillColor: color,
+      fillOpacity: 0.07, weight: 1.5, opacity: 0.45, dashArray: '5 6', interactive: true
     });
-    clusterGroup.addLayer(marker);
-    markerRefs.push({ marker, isHub, name });
+
+    circle.on('mouseover', () => {
+      if (activeRegionId !== region.id)
+        circle.setStyle({ fillOpacity: 0.16, opacity: 0.80, weight: 2, dashArray: null });
+      const km = (radiusM/1000).toFixed(1), mi = (radiusM/1609.34).toFixed(1);
+      circle.bindTooltip(
+        `<div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;color:#fff">${region.name}</div>
+         <div style="font-size:10px;color:#ccc;margin-bottom:2px">Hub: ${region.hub}</div>
+         <div style="font-size:10px;color:#ccc">${matched.length} clubs</div>
+         <div style="font-size:9px;color:#888;margin-top:4px">Radius: ${mi} mi</div>`,
+        { sticky:true, className:'region-hover-tooltip', direction:'auto' }
+      ).openTooltip();
+    });
+    circle.on('mouseout', () => {
+      circle.unbindTooltip();
+      if (activeRegionId !== region.id)
+        circle.setStyle({ fillOpacity:0.07, opacity:0.45, weight:1.5, dashArray:'5 6' });
+    });
+    circle.on('click', () => activateRegion(region.id));
+    radiusLayer.addLayer(circle);
+
+    // Centroid dot — store ref for live color updates
+    const centroidDot = L.marker(centroid, { icon:makeCentroidIcon(color), interactive:false, zIndexOffset:-100 });
+    centroidLayer.addLayer(centroidDot);
+
+    // Bounds for flyTo
+    const bounds = coordList.length > 1 ? L.latLngBounds(coordList).pad(0.15) : L.latLngBounds([centroid]).pad(0.5);
+
+    // Club markers — collect refs for live updates
+    const markerRefs = [];
+    matched.forEach(({name, coords}) => {
+      const isHub = HUB_CLUBS.has(name);
+      const marker = L.marker(coords, {
+        icon: isHub ? makeHubIcon(color) : makeClubIcon(color),
+        zIndexOffset: isHub ? 1000 : 0
+      });
+      marker._regionColor = color;
+      marker._regionId    = region.id;
+
+      marker.bindTooltip(
+        `<strong>${name}</strong>${isHub ? ' <span style="opacity:0.6;font-size:9px">HUB</span>' : ''}<br/><span style="font-size:10px;color:#ccc">${region.name}</span>`,
+        { direction:'top', offset:[0, isHub ? -20 : -12] }
+      );
+      marker.on('click', () => {
+        const mi = (radiusM/1609.34).toFixed(1);
+        const hubCoords = COORDS[region.hub];
+        const distToHub = (!isHub && hubCoords)
+          ? (haversineM(coords, hubCoords) / 1609.34).toFixed(1)
+          : null;
+        const cd = _clubDataIndex[name] || {};
+        const hasCoachData = cd.total_coaches || cd.coach || cd.coach_plus || cd.coach_x;
+        L.popup({ maxWidth:300, closeButton:true, offset:[0, isHub?-20:-12] })
+          .setLatLng(coords)
+          .setContent(`<div class="popup-inner">
+            <div class="popup-club">${name}</div>
+            <div class="popup-region">${region.name} &mdash; ${region.macro}</div>
+            ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
+            <div class="popup-meta">
+              Cluster: <strong>${matched.length} clubs</strong><br/>
+              Cluster radius: <strong>${mi} mi</strong><br/>
+              ${distToHub ? `Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong><br/>` : ''}
+              Strategy: <strong>${region.strategy}</strong><br/>
+              ${cd.educator ? `Educator: <strong>${cd.educator}</strong>${cd.job_title ? ` &mdash; ${cd.job_title}` : ''}<br/>` : ''}
+              ${hasCoachData ? `Coach: <strong>${cd.coach||0}</strong> &nbsp;&middot;&nbsp; Coach+: <strong>${cd.coach_plus||0}</strong> &nbsp;&middot;&nbsp; Coach X: <strong>${cd.coach_x||0}</strong><br/>Total Coaches: <strong>${cd.total_coaches||0}</strong><br/>` : ''}
+              ${cd.educator_count ? `Educator Count: <strong>${cd.educator_count}</strong><br/>` : ''}
+            </div>
+          </div>`)
+          .openOn(map);
+        activateRegion(region.id, false);
+      });
+      clusterGroup.addLayer(marker);
+      markerRefs.push({ marker, isHub, name });
+    });
+
+    regionLayers[region.id] = { region, color, centroid, radiusM, circle, centroidDot, bounds, matched, markers: markerRefs };
   });
-
-  regionLayers[region.id] = { region, color, centroid, radiusM, circle, centroidDot, bounds, matched, markers: markerRefs };
-});
-
-map.addLayer(clusterGroup);
+}
 
 // ── SIDEBAR ────────────────────────────────────────────────
 const MACRO_ORDER  = ['WEST','SOUTH','NYC','NORTHEAST','NORTH'];
@@ -1661,13 +1675,111 @@ Object.assign(styleBtn.style, {
 });
 document.getElementById('topbar').appendChild(styleBtn);
 
+// ── FETCH LAYER ────────────────────────────────────────────
+async function fetchLiveData() {
+  const res = await fetch(DATA_URL, { method: 'POST' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── TRANSFORM LAYER ────────────────────────────────────────
+function transformApiData(rows) {
+  const num = v => parseInt(v) || 0;
+  const str = v => (v || '').toString().trim();
+  const coordsNew = {}, hubSet = new Set(), regionMap = {}, clubIdx = {};
+
+  rows.forEach(row => {
+    const club_name     = str(row.club_name);
+    const region        = str(row.region);
+    const macro_region  = str(row.macro_region).toUpperCase();
+    const lat           = parseFloat(row.latitude);
+    const lng           = parseFloat(row.longitude);
+    const is_hub        = ['yes','true','1','x'].includes(str(row.is_hub).toLowerCase());
+    const hub_club      = str(row.hub_club);
+    const strategy      = str(row.strategy);
+    const coach         = num(row.coach);
+    const coach_plus    = num(row['coach_+']);
+    const coach_x       = num(row.coach_x);
+    const total_coaches  = num(row.total_coaches);
+    const educator_count = num(row.educator_count);
+
+    if (!club_name || isNaN(lat) || isNaN(lng)) return;
+
+    coordsNew[club_name] = [lat, lng];
+    if (is_hub) hubSet.add(club_name);
+    clubIdx[club_name] = { club_name, region, macro_region, is_hub, hub_club, strategy, coach, coach_plus, coach_x, total_coaches, educator_count };
+
+    if (!region) return;
+    if (!regionMap[region]) regionMap[region] = { name: region, macro: macro_region, hub: hub_club || null, strategy, clubs: [] };
+    regionMap[region].clubs.push(club_name);
+    if (is_hub && !regionMap[region].hub) regionMap[region].hub = club_name;
+    if (strategy && !regionMap[region].strategy) regionMap[region].strategy = strategy;
+  });
+
+  const regionsNew = Object.values(regionMap).map(r => {
+    const s   = REGIONS_STATIC.find(x => x.name === r.name) || {};
+    const pfx = { WEST:'W', SOUTH:'S', NYC:'N', NORTHEAST:'NE', NORTH:'NO' }[r.macro] || 'X';
+    return {
+      id:        s.id       || `${pfx}_${r.name.replace(/\s+/g,'').toUpperCase().slice(0,6)}`,
+      macro:     r.macro    || s.macro    || 'WEST',
+      name:      r.name,
+      hub:       r.hub      || s.hub      || r.clubs[0] || '',
+      clubs:     r.clubs,
+      bases:     s.bases    !== undefined  ? s.bases    : 0,
+      dist:      s.dist     || 'TBD',
+      density:   s.density  !== undefined  ? s.density  : null,
+      strategy:  r.strategy || s.strategy || 'Hub & Spoke',
+      narrative: s.narrative || '',
+    };
+  });
+
+  return { coordsNew, hubSet, regionsNew, clubIdx };
+}
+
+// ── HYDRATION ──────────────────────────────────────────────
+function hydrateMap({ coordsNew, hubSet, regionsNew, clubIdx }) {
+  const hash = JSON.stringify([Object.keys(coordsNew).sort(), hubSet.size, regionsNew.map(r=>r.id).sort()]);
+  if (hash === _lastDataHash) return;
+  _lastDataHash = hash;
+
+  // Mutate globals in-place so all existing logic keeps working
+  Object.keys(COORDS).forEach(k => delete COORDS[k]);
+  Object.assign(COORDS, coordsNew);
+  HUB_CLUBS.clear(); hubSet.forEach(c => HUB_CLUBS.add(c));
+  REGIONS.length = 0; regionsNew.forEach(r => REGIONS.push(r));
+  _clubDataIndex = clubIdx;
+
+  buildRegionLayers();
+  renderSidebar(currentFilter);
+
+  const sv = document.querySelectorAll('.stat-val');
+  if (sv[0]) sv[0].textContent = Object.keys(COORDS).length;
+  if (sv[1]) sv[1].textContent = HUB_CLUBS.size;
+  if (sv[2]) sv[2].textContent = new Set(REGIONS.map(r => r.macro)).size;
+}
+
+// ── LIVE DATA INIT ─────────────────────────────────────────
+async function initMapData() {
+  try {
+    const raw        = await fetchLiveData();
+    const structured = transformApiData(raw);
+    hydrateMap(structured);
+  } catch (err) {
+    console.error('[EQX Map] API fetch failed, map running on cached data:', err);
+  }
+}
+
 // ── INIT ───────────────────────────────────────────────────
+buildRegionLayers();
+map.addLayer(clusterGroup);
 renderSidebar();
 const allBtn = document.querySelector('.filter-btn[data-macro="ALL"]');
 if (allBtn) { allBtn.style.background='#1a1a1a'; allBtn.style.color='#fff'; allBtn.style.borderColor='transparent'; }
 initRegionColorPickers();
-loadSavedSettings();   // restore last session's settings
-renderSavedPresets();  // populate saved presets list
+loadSavedSettings();
+renderSavedPresets();
+initMapData();
+setInterval(initMapData, 300000);
 </script>
 </body>
 </html>
