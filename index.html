@@ -1513,13 +1513,13 @@ function buildRegionLayers() {
             <div class="popup-club">${name}${cd.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:11px"> | ${cd.club_id}</span>` : ''}</div>
             <div class="popup-region">${region.name} &mdash; ${region.macro}</div>
             ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
-            ${(cd.coach_x > 0) ? `<div style="margin-bottom:6px"><img src="${COACH_X_ICON}" class="coachx-icon" style="height:14px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
+            ${(cd.coach_x > 0) ? `<div style="margin-bottom:6px"><img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:14px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
             <div class="popup-meta">
               Cluster: <strong>${matched.length} clubs</strong><br/>
               Cluster radius: <strong>${mi} mi</strong><br/>
               ${distToHub ? `Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong><br/>` : ''}
               ${cd.educator ? `Educator: <strong>${cd.educator}</strong>${cd.job_title ? ` &mdash; ${cd.job_title}` : ''}<br/>` : ''}
-              ${hasCoachData ? `Coach: <strong>${cd.coach||0}</strong> &nbsp;&middot;&nbsp; Coach<sup>+</sup>: <strong>${cd.coach_plus||0}</strong> &nbsp;&middot;&nbsp; COACH<img src="${COACH_X_ICON}" class="coachx-icon" style="height:11px;vertical-align:text-bottom;display:inline;margin:0 0 0 2px;">:<strong>${cd.coach_x||0}</strong><br/>Total Coaches: <strong>${cd.total_coaches||0}</strong><br/>` : ''}
+              ${hasCoachData ? `Coach: <strong>${cd.coach||0}</strong> &nbsp;&middot;&nbsp; Coach<sup>+</sup>: <strong>${cd.coach_plus||0}</strong> &nbsp;&middot;&nbsp; COACH<img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:11px;vertical-align:text-bottom;display:inline;margin:0 0 0 2px;">:<strong>${cd.coach_x||0}</strong><br/>Total Coaches: <strong>${cd.total_coaches||0}</strong><br/>` : ''}
               ${cd.educator_count > 0 ? `Educators: <strong>${cd.educator_count}</strong> 🧠<br/>` : ''}
             </div>
           </div>`)
@@ -1555,7 +1555,8 @@ function renderSidebar(filter='ALL') {
         const brain = cd.educator_count > 0 ? ' 🧠' : '';
         const idStr = cd.club_id ? ` | ${cd.club_id}` : '';
         const isHub = HUB_CLUBS.has(c);
-        const cxLogo = (cd.coach_x > 0) ? `<img src="${isHub ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:10px;vertical-align:middle;display:inline;margin-left:4px;opacity:0.75;">` : '';
+        const cxSrc = isDark ? (isHub ? COACH_X_ICON : COACH_X_ICON_WHITE) : (isHub ? COACH_X_ICON_WHITE : COACH_X_ICON);
+        const cxLogo = (cd.coach_x > 0) ? `<img src="${cxSrc}" class="coachx-icon" style="height:10px;vertical-align:middle;display:inline;margin-left:4px;opacity:0.75;">` : '';
         return `<span class="club-tag${isHub?' is-hub':''}" onclick="flyToClub('${c.replace(/'/g,"\\'")}',event)" title="Zoom to ${c}">${c}${idStr}${brain}${cxLogo}</span>`;
       }).join('');
       html += `
@@ -1661,7 +1662,7 @@ window.flyToClub = function(clubName, event) {
       <div class="popup-club" style="font-size:12px">${clubName}${_flyEd?.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:10px"> | ${_flyEd.club_id}</span>` : ''}${(_flyEd?.educator_count > 0) ? ' 🧠' : ''}</div>
       ${region ? `<div class="popup-region">${region.name}</div>` : ''}
       ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
-      ${(_flyEd?.coach_x > 0) ? `<div style="margin-bottom:4px"><img src="${COACH_X_ICON}" class="coachx-icon" style="height:13px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
+      ${(_flyEd?.coach_x > 0) ? `<div style="margin-bottom:4px"><img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:13px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
       ${distToHub ? `<div class="popup-meta" style="margin-top:6px">Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong></div>` : ''}
       ${(_flyEd?.educator_count > 0) ? `<div class="popup-meta" style="margin-top:4px">Educators: <strong>${_flyEd.educator_count}</strong> 🧠</div>` : ''}
     </div>`)
@@ -1684,7 +1685,10 @@ window.toggleDarkMode = function() {
       currentBasemap = 'dark';
     }
     btn.textContent = '☀ Light';
-    document.querySelectorAll('img.coachx-icon').forEach(el => el.src = COACH_X_ICON_WHITE);
+    document.querySelectorAll('img.coachx-icon').forEach(el => {
+      const chip = el.closest('.club-tag');
+      el.src = (chip && chip.classList.contains('is-hub')) ? COACH_X_ICON : COACH_X_ICON_WHITE;
+    });
     btn.style.background = '#f0f0f0';
     btn.style.color = '#0a0a0a';
     btn.style.borderColor = 'transparent';
@@ -1700,7 +1704,10 @@ window.toggleDarkMode = function() {
       currentBasemap = 'street';
     }
     btn.textContent = '☾ Dark';
-    document.querySelectorAll('img.coachx-icon').forEach(el => el.src = COACH_X_ICON);
+    document.querySelectorAll('img.coachx-icon').forEach(el => {
+      const chip = el.closest('.club-tag');
+      el.src = (chip && chip.classList.contains('is-hub')) ? COACH_X_ICON_WHITE : COACH_X_ICON;
+    });
     btn.style.background = '#fff';
     btn.style.color = '#1a1a1a';
     btn.style.borderColor = '#444';
@@ -2227,7 +2234,7 @@ function hydrateMap({ coordsNew, hubSet, regionsNew, clubIdx }) {
   if (elTC)  elTC.textContent  = `TOTAL COACHES: ${totalCoaches}`;
   if (elC)   elC.textContent   = `COACH:${totalCoach}`;
   if (elCP)  elCP.innerHTML    = `COACH<sup>+</sup>:${totalCoachP}`;
-  if (elCX)  elCX.innerHTML    = `COACH<img src="${COACH_X_ICON}" class="coachx-icon" style="height:11px;vertical-align:text-bottom;display:inline;margin:0 0 0 2px;">:${totalCoachX}`;
+  if (elCX)  elCX.innerHTML    = `COACH<img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:11px;vertical-align:text-bottom;display:inline;margin:0 0 0 2px;">:${totalCoachX}`;
   if (elPTE) elPTE.textContent = `EFTI EDUCATORS 🧠: ${totalPTE}`;
 }
 
