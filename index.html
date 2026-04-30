@@ -684,12 +684,19 @@ body.dark .search-item.search-active .search-region { color: #666; }
   #legend-section { display: none; }
   #radius-section { display: none; }
 
-  /* Topbar compact — no spacer, all buttons visible */
-  #topbar { padding: 0 10px; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  #topbar::-webkit-scrollbar { display: none; }
+  /* Topbar compact — all buttons fully visible, no scroll */
+  #topbar { padding: 0 10px; gap: 6px; }
   #topbar-brand { font-size: 11px; flex-shrink: 0; }
   #topbar-title { font-size: 8px; flex-shrink: 0; }
   #topbar-spacer { flex: 0; width: 0; min-width: 0; }
+  /* Override JS inline styles on topbar buttons */
+  #dark-btn, #basemap-btn, #style-btn {
+    padding: 4px 8px !important;
+    font-size: 8px !important;
+    letter-spacing: 0.04em !important;
+    flex-shrink: 1 !important;
+    white-space: nowrap !important;
+  }
 
   /* Prevent iOS zoom on search input */
   #club-search { font-size: 16px; }
@@ -1735,6 +1742,7 @@ document.getElementById('topbar').appendChild(toggleBtn);
 
 // ── MOBILE PANEL DRAG ──────────────────────────────────────
 (function initPanelDrag() {
+  if (window.innerWidth > 768) return;
   const panel  = document.getElementById('panel');
   const handle = document.getElementById('panel-handle');
   if (!panel || !handle) return;
