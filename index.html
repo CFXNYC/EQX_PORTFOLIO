@@ -631,6 +631,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
   /* Panel inner layout */
   #panel-title {
     padding: 10px 16px 10px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -686,11 +687,12 @@ body.dark .search-item.search-active .search-region { color: #666; }
   #legend-section { display: none; }
   #radius-section { display: none; }
 
-  /* Topbar compact — all buttons fully visible, no scroll */
-  #topbar { padding: 0 10px; gap: 6px; }
+  /* Topbar compact — centered */
+  #topbar { padding: 0 10px; gap: 6px; justify-content: center; }
   #topbar-brand { font-size: 11px; flex-shrink: 0; }
   #topbar-title { font-size: 8px; flex-shrink: 0; }
-  #topbar-spacer { flex: 0; width: 0; min-width: 0; }
+  #topbar-spacer { display: none; }
+  #topbar-meta { display: none; }
   /* Override JS inline styles on topbar buttons */
   #dark-btn, #basemap-btn, #style-btn {
     padding: 4px 8px !important;
