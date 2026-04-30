@@ -1730,10 +1730,70 @@ Object.assign(toggleBtn.style, {
 });
 document.getElementById('topbar').appendChild(toggleBtn);
 
-// ── MOBILE PANEL TOGGLE ────────────────────────────────────
-window.toggleMobilePanel = function() {
-  document.getElementById('panel').classList.toggle('panel-open');
-};
+// ── MOBILE PANEL DRAG ──────────────────────────────────────
+(function initPanelDrag() {
+  const panel  = document.getElementById('panel');
+  const handle = document.getElementById('panel-handle');
+  if (!panel || !handle) return;
+
+  const PEEK = 108;
+  let currentY   = 0;
+  let isDragging = false;
+  let startTouchY    = 0;
+  let startPanelY    = 0;
+  let lastTouchY     = 0;
+  let lastTimestamp  = 0;
+  let velocity       = 0;
+
+  function maxY() { return window.innerHeight * 0.68 - PEEK; }
+
+  function applyY(y, animate) {
+    currentY = Math.max(0, Math.min(y, maxY()));
+    panel.style.transition = animate ? 'transform 0.34s cubic-bezier(0.4,0,0.2,1)' : 'none';
+    panel.style.transform  = `translateY(${currentY}px)`;
+  }
+
+  function snap() {
+    const max = maxY();
+    const mid = max * 0.46;
+    if (velocity < -500) { applyY(0, true);   return; }
+    if (velocity >  500) { applyY(max, true); return; }
+    const targets = [0, mid, max];
+    const best = targets.reduce((a, b) => Math.abs(b - currentY) < Math.abs(a - currentY) ? b : a);
+    applyY(best, true);
+  }
+
+  handle.addEventListener('touchstart', e => {
+    isDragging   = true;
+    startTouchY  = e.touches[0].clientY;
+    startPanelY  = currentY;
+    lastTouchY   = startTouchY;
+    lastTimestamp = e.timeStamp;
+    velocity      = 0;
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const t  = e.touches[0];
+    const dt = e.timeStamp - lastTimestamp;
+    if (dt > 0) velocity = (t.clientY - lastTouchY) / dt * 1000;
+    lastTouchY    = t.clientY;
+    lastTimestamp = e.timeStamp;
+    applyY(startPanelY + (t.clientY - startTouchY), false);
+  }, { passive: true });
+
+  handle.addEventListener('touchend',   () => { if (!isDragging) return; isDragging = false; snap(); }, { passive: true });
+  handle.addEventListener('touchcancel',() => { if (!isDragging) return; isDragging = false; snap(); }, { passive: true });
+
+  // Tap still toggles between collapsed and open
+  window.toggleMobilePanel = function() {
+    applyY(currentY > maxY() * 0.5 ? 0 : maxY(), true);
+  };
+
+  // Initialise to collapsed position via inline style (overrides CSS class)
+  applyY(maxY(), false);
+})();
 
 // Panel opens only on explicit handle tap — no auto-open on region activate
 
