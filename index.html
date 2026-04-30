@@ -562,10 +562,12 @@ body.dark .search-item.search-active .search-region { color: #666; }
 #panel-handle { display: none; }
 
 @media (max-width: 768px) {
-  /* Topbar compact */
-  #topbar { height: 44px; padding: 0 14px; gap: 10px; }
-  #topbar-brand { font-size: 12px; letter-spacing: 0.16em; }
-  #topbar-title { font-size: 9px; }
+  /* Topbar compact — centered */
+  #topbar { height: 44px; padding: 0 10px; gap: 6px; justify-content: center; }
+  #topbar-brand { font-size: 11px; flex-shrink: 0; }
+  #topbar-divider { flex-shrink: 0; }
+  #topbar-title { font-size: 8px; flex-shrink: 0; }
+  #topbar-spacer { display: none; }
   #topbar-meta { display: none; }
 
   /* Full-screen map */
@@ -687,12 +689,6 @@ body.dark .search-item.search-active .search-region { color: #666; }
   #legend-section { display: none; }
   #radius-section { display: none; }
 
-  /* Topbar compact — centered */
-  #topbar { padding: 0 10px; gap: 6px; justify-content: center; }
-  #topbar-brand { font-size: 11px; flex-shrink: 0; }
-  #topbar-title { font-size: 8px; flex-shrink: 0; }
-  #topbar-spacer { display: none; }
-  #topbar-meta { display: none; }
   /* Override JS inline styles on topbar buttons */
   #dark-btn, #basemap-btn, #style-btn {
     padding: 4px 8px !important;
