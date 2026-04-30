@@ -663,8 +663,8 @@ body.dark .search-item.search-active .search-region { color: #666; }
         <div id="legend-section">
           <div class="legend-title">Map Legend</div>
           <div class="legend-grid">
-            <div class="legend-item"><div class="l-pin"><div class="l-pin-dot"></div></div><span>Hub Club</span></div>
-            <div class="legend-item"><div class="l-dot" style="background:#888"></div><span>Satellite Club</span></div>
+            <div class="legend-item" id="legend-hub"><span>Hub Club</span></div>
+            <div class="legend-item" id="legend-sat"><span>Satellite Club</span></div>
             <div class="legend-item"><div class="l-ring"></div><span>Cluster Perimeter</span></div>
             <div class="legend-item"><div class="l-centroid"></div><span>Computed Center</span></div>
           </div>
@@ -763,6 +763,162 @@ body.dark .search-item.search-active .search-region { color: #666; }
 const DATA_URL = "https://default3016677c32d54346ba5e7dd46f6662.60.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4bbf0259c9da4dce95d4358489cad7ee/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=vmIihrkhagLWJ2yAFwDGdqm74d5RgPATjWqXlinZwwc";
 let _lastDataHash = null;
 let _clubDataIndex = {};  // clubName → coach/educator row data
+
+// ── CLUB ID LOOKUP (not in API — keyed to API club_name) ───
+const CLUB_IDS = {
+  // NYC — Downtown / Midtown / Brooklyn
+  'Flatiron':                    '102',
+  'West 92nd Street':            '103',
+  'East 85th Street':            '104',
+  'East 63rd Street':            '105',
+  'East 54th Street':            '106',
+  'West 50th Street':            '107',
+  'East 43rd Street':            '108',
+  'East 44th Street':            '109',
+  'Wall Street':                 '110',
+  'Tribeca':                     '111',
+  'Greenwich Avenue':            '112',
+  'Columbus Circle':             '113',
+  'SoHo':                        '114',
+  'SOHO':                        '114',
+  'Park Avenue':                 '115',
+  'High Line':                   '116',
+  'East 74th Street':            '117',
+  'West 76th Street':            '121',
+  'South Gulch':                 '121',
+  'Orchard Street':              '122',
+  'Orchard':                     '122',
+  'Printing House':              '124',
+  'Rockefeller Center':          '126',
+  'Bryant Park':                 '127',
+  'Brookfield Place':            '128',
+  'Brookfield':                  '128',
+  'East 92nd Street':            '129',
+  'Brooklyn Heights':            '130',
+  'SCNY':                        '131',
+  'Sports Club NY':              '131',
+  'East 61st Street':            '132',
+  'East 53rd Street':            '133',
+  'DUMBO':                       '134',
+  'Dumbo':                       '134',
+  'Bond Street':                 '135',
+  'Gramercy':                    '136',
+  'Williamsburg':                '137',
+  'Hudson Yards':                '138',
+  'E Madison Avenue':            '139',
+  'NoMad':                       '160',
+  'Domino':                      '161',
+  'Domino Sugar':                '161',
+  'Hudson Square':               '162',
+  // NORTHEAST — Westchester / CT / NJ / LI
+  'Scarsdale':                   '140',
+  'Darien':                      '141',
+  'Woodbury':                    '142',
+  'Roslyn':                      '143',
+  'Mamaroneck':                  '144',
+  'Great Neck':                  '145',
+  'Greenwich + E Club CT':       '148',
+  'Greenwich CT':                '148',
+  'Armonk':                      '149',
+  'Summit':                      '150',
+  'Paramus':                     '151',
+  'Southport':                   '155',
+  // BOSTON
+  'Dartmouth Street':            '201',
+  'Franklin Street':             '202',
+  'Chestnut Hill':               '203',
+  'SCBO':                        '204',
+  'Sports Club Boston':          '204',
+  'Seaport':                     '206',
+  // PHILLY
+  'Rittenhouse':                 '240',
+  // DC / DMV
+  'Tysons Corner':               '251',
+  'Bethesda':                    '252',
+  'Sports Club DC':              '253',
+  'Scott Circle DC':             '253',
+  'Anthem Row':                  '254',
+  'Wisconsin Ave':               '256',
+  'Wisconsin Avenue':            '256',
+  // SOUTH FLORIDA
+  'South Beach':                 '301',
+  'Miami Beach':                 '301',
+  'Coral Gables':                '302',
+  'Aventura':                    '303',
+  'Brickell':                    '304',
+  'Brickell Heights':            '305',
+  'West Palm Beach':             '308',
+  // CHICAGO
+  'Lincoln Park':                '401',
+  'Gold Coast':                  '402',
+  'The Loop':                    '404',
+  'Lincoln Common':              '405',
+  'Fulton Market':               '406',
+  // MICHIGAN
+  'Bloomfield Hills':            '420',
+  // TEXAS
+  'Highland Park':               '451',
+  'Highland Park TX':            '451',
+  'River Oaks':                  '454',
+  'Plano':                       '455',
+  'Plano TX':                    '455',
+  'Austin':                      '456',
+  'Austin TX':                   '456',
+  // SOCAL
+  'Pasadena':                    '701',
+  'West Hollywood':              '702',
+  'Santa Monica':                '703',
+  'Westwood':                    '704',
+  'Palos Verdes':                '705',
+  'Woodland Hills':              '707',
+  'South Bay':                   '708',
+  'Studio City':                 '709',
+  'Marina del Rey':              '711',
+  'Beverly Hills':               '712',
+  'SCLA':                        '713',
+  'Sports Club LA':              '713',
+  'Encino':                      '714',
+  'Downtown LA':                 '715',
+  'Westlake Village':            '716',
+  'Hollywood':                   '717',
+  'Glendale':                    '718',
+  'Century City':                '750',
+  'Miracle Mile':                '751',
+  'Culver City':                 '752',
+  'Santa Monica East':           '753',
+  // NORCAL
+  'Berkeley':                    '719',
+  'Pine Street':                 '720',
+  'San Mateo':                   '721',
+  'Palo Alto':                   '722',
+  'Union Street':                '723',
+  'SCSF + E Club':               '724',
+  'Market Street':               '724',
+  'San Ramon':                   '725',
+  'Van Mission':                 '726',
+  'Beale Street':                '727',
+  // OC + SAN DIEGO
+  'Newport Beach':               '730',
+  'Sports Club Orange County':   '732',
+  'Sports Club OC':              '732',
+  'Huntington Beach':            '733',
+  'La Costa':                    '734',
+  'Downtown San Diego':          '735',
+  // PACIFIC NORTHWEST
+  'Rainier Square':              '790',
+  // CANADA
+  'Bay Street':                  '852',
+  '199 Bay Street':              '852',
+  'Yorkville':                   '854',
+  'Equinox Yorkville':           '854',
+  'West Georgia Street':         '860',
+  'W Georgia':                   '860',
+  // LONDON
+  'Kensington':                  '871',
+  'E St. James\'s':              '873',
+  'East Saint James':            '873',
+  'Bishopsgate':                 '875',
+};
 
 // ── DESIGN TOKENS ──────────────────────────────────────────
 // ── DESIGNATED HUB CLUBS ───────────────────────────────────
@@ -1226,14 +1382,13 @@ function buildRegionLayers() {
         L.popup({ maxWidth:300, closeButton:true, offset:[0, isHub?-20:-12] })
           .setLatLng(coords)
           .setContent(`<div class="popup-inner">
-            <div class="popup-club">${name}</div>
+            <div class="popup-club">${name}${cd.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:11px"> | ${cd.club_id}</span>` : ''}</div>
             <div class="popup-region">${region.name} &mdash; ${region.macro}</div>
             ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
             <div class="popup-meta">
               Cluster: <strong>${matched.length} clubs</strong><br/>
               Cluster radius: <strong>${mi} mi</strong><br/>
               ${distToHub ? `Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong><br/>` : ''}
-              Strategy: <strong>${region.strategy}</strong><br/>
               ${cd.educator ? `Educator: <strong>${cd.educator}</strong>${cd.job_title ? ` &mdash; ${cd.job_title}` : ''}<br/>` : ''}
               ${hasCoachData ? `Coach: <strong>${cd.coach||0}</strong> &nbsp;&middot;&nbsp; Coach+: <strong>${cd.coach_plus||0}</strong> &nbsp;&middot;&nbsp; Coach X: <strong>${cd.coach_x||0}</strong><br/>Total Coaches: <strong>${cd.total_coaches||0}</strong><br/>` : ''}
               ${cd.educator_count > 0 ? `Educators: <strong>${cd.educator_count}</strong> 🧠<br/>` : ''}
@@ -1266,10 +1421,14 @@ function renderSidebar(filter='ALL') {
       const rM    = layer ? layer.radiusM : 0;
       const mi = (rM/1609.34).toFixed(1);
       const centroid = layer ? layer.centroid : null;
-      const tags  = region.clubs.filter(c=>COORDS[c]).map(c=>
-        `<span class="club-tag${HUB_CLUBS.has(c)?' is-hub':''}" onclick="flyToClub('${c.replace(/'/g,"\\'")}',event)" title="Zoom to ${c}">${c}${(_clubDataIndex[c]?.educator_count > 0) ? ' 🧠' : ''}</span>`).join('');
+      const tags  = region.clubs.filter(c=>COORDS[c]).map(c=>{
+        const cd = _clubDataIndex[c] || {};
+        const brain = cd.educator_count > 0 ? ' 🧠' : '';
+        const idStr = cd.club_id ? ` | ${cd.club_id}` : '';
+        return `<span class="club-tag${HUB_CLUBS.has(c)?' is-hub':''}" onclick="flyToClub('${c.replace(/'/g,"\\'")}',event)" title="Zoom to ${c}">${c}${idStr}${brain}</span>`;
+      }).join('');
       html += `
-        <div class="region-card" id="card-${region.id}" style="border-left-color:${COLORS[region.macro]}" onclick="activateRegion('${region.id}')">
+        <div class="region-card" id="card-${region.id}" data-region-id="${region.id}" style="border-left-color:${COLORS[region.macro]}">
           <div class="card-header">
             <span class="card-name">${region.name}</span>
             <span class="card-count">${n} clubs</span>
@@ -1283,7 +1442,6 @@ function renderSidebar(filter='ALL') {
               ${region.density!==null?`<div class="meta-cell"><div class="meta-val">${region.density}</div><div class="meta-lbl">Density</div></div>`:''}
             </div>
             <div class="narrative">${region.narrative}</div>
-            <span class="strategy-tag ${stratClass(region.strategy)}">${region.strategy}</span>
             ${centroid?`<div class="centroid-info">centroid ${centroid[0].toFixed(4)}, ${centroid[1].toFixed(4)} &nbsp;|&nbsp; r = ${mi} mi</div>`:''}
           </div>
         </div>`;
@@ -1295,7 +1453,6 @@ function renderSidebar(filter='ALL') {
 // ── ACTIVATE ───────────────────────────────────────────────
 window.activateRegion = function(regionId, flyMap=true) {
   const layer = regionLayers[regionId];
-  if (!layer) return;
 
   if (activeRegionId && activeRegionId !== regionId) {
     const prev = regionLayers[activeRegionId];
@@ -1304,7 +1461,7 @@ window.activateRegion = function(regionId, flyMap=true) {
   }
 
   if (activeRegionId === regionId) {
-    layer.circle.setStyle({ fillOpacity:0.07, opacity:0.45, weight:1.5, dashArray:'5 6' });
+    if (layer) layer.circle.setStyle({ fillOpacity:0.07, opacity:0.45, weight:1.5, dashArray:'5 6' });
     document.getElementById(`card-${regionId}`)?.classList.remove('active');
     activeRegionId = null;
     document.getElementById('radius-text').textContent = 'SELECT A REGION';
@@ -1313,19 +1470,20 @@ window.activateRegion = function(regionId, flyMap=true) {
   }
 
   activeRegionId = regionId;
-  layer.circle.setStyle({ fillOpacity:0.18, opacity:0.90, weight:2, dashArray:null });
+  if (layer) layer.circle.setStyle({ fillOpacity:0.18, opacity:0.90, weight:2, dashArray:null });
 
   const card = document.getElementById(`card-${regionId}`);
   if (card) { card.classList.add('active'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
 
-  const mi = (layer.radiusM/1609.34).toFixed(1), km = (layer.radiusM/1000).toFixed(1);
-  document.getElementById('radius-text').textContent = `${layer.region.name.toUpperCase()} — ${mi} MI`;
-  const dot = document.querySelector('.radius-dot');
-  dot.style.background  = layer.color;
-  dot.style.boxShadow   = `0 0 0 3px ${layer.color}44`;
-  dot.style.borderColor = layer.color;
-
-  if (flyMap) map.flyToBounds(layer.bounds, { animate:true, duration:0.9, maxZoom:14 });
+  if (layer) {
+    const mi = (layer.radiusM/1609.34).toFixed(1);
+    document.getElementById('radius-text').textContent = `${layer.region.name.toUpperCase()} — ${mi} MI`;
+    const dot = document.querySelector('.radius-dot');
+    dot.style.background  = layer.color;
+    dot.style.boxShadow   = `0 0 0 3px ${layer.color}44`;
+    dot.style.borderColor = layer.color;
+    if (flyMap) map.flyToBounds(layer.bounds, { animate:true, duration:0.9, maxZoom:14 });
+  }
 };
 
 // ── FILTER ─────────────────────────────────────────────────
@@ -1367,7 +1525,7 @@ window.flyToClub = function(clubName, event) {
   L.popup({ maxWidth: 240, closeButton: false, autoClose: true, closeOnClick: true })
     .setLatLng(coords)
     .setContent(`<div class="popup-inner" style="padding:10px 14px">
-      <div class="popup-club" style="font-size:12px">${clubName}${(_flyEd?.educator_count > 0) ? ' 🧠' : ''}</div>
+      <div class="popup-club" style="font-size:12px">${clubName}${_flyEd?.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:10px"> | ${_flyEd.club_id}</span>` : ''}${(_flyEd?.educator_count > 0) ? ' 🧠' : ''}</div>
       ${region ? `<div class="popup-region">${region.name}</div>` : ''}
       ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
       ${distToHub ? `<div class="popup-meta" style="margin-top:6px">Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong></div>` : ''}
@@ -1796,6 +1954,7 @@ function transformApiData(rows) {
     const lng           = parseFloat(row.longitude);
     const is_hub        = ['yes','true','1','x'].includes(str(row.is_hub).toLowerCase());
     const hub_club      = str(row.hub_club);
+    const club_id       = CLUB_IDS[club_name] || '';
     const strategy      = str(row.strategy);
     const coach         = num(row.coach);
     const coach_plus    = num(row['coach_+']);
@@ -1807,7 +1966,7 @@ function transformApiData(rows) {
 
     coordsNew[club_name] = [lat, lng];
     if (is_hub) hubSet.add(club_name);
-    clubIdx[club_name] = { club_name, region, macro_region, is_hub, hub_club, strategy, coach, coach_plus, coach_x, total_coaches, educator_count };
+    clubIdx[club_name] = { club_name, region, macro_region, is_hub, hub_club, club_id, strategy, coach, coach_plus, coach_x, total_coaches, educator_count };
 
     if (!region) return;
     if (!regionMap[region]) regionMap[region] = { name: region, macro: macro_region, hub: hub_club || null, strategy, clubs: [] };
@@ -1820,7 +1979,7 @@ function transformApiData(rows) {
     const s   = REGIONS_STATIC.find(x => x.name === r.name) || {};
     const pfx = { WEST:'W', SOUTH:'S', NYC:'N', NORTHEAST:'NE', NORTH:'NO' }[r.macro] || 'X';
     return {
-      id:        s.id       || `${pfx}_${r.name.replace(/\s+/g,'').toUpperCase().slice(0,6)}`,
+      id:        s.id       || `${pfx}_${r.name.replace(/[^A-Z0-9]/gi,'_').toUpperCase()}`,
       macro:     r.macro    || s.macro    || 'WEST',
       name:      r.name,
       hub:       r.hub      || s.hub      || r.clubs[0] || '',
@@ -1888,6 +2047,8 @@ window.handleSearch = function() {
     .filter(name => {
       if (name === '_init') return false;
       if (name.toLowerCase().includes(query)) return true;
+      const cd = _clubDataIndex[name];
+      if (cd?.club_id && cd.club_id.toString().includes(query)) return true;
       const entry = CLUB_REGION[name];
       if (!entry) return false;
       const rName  = (entry.region?.name  || '').toLowerCase();
@@ -1903,13 +2064,15 @@ window.handleSearch = function() {
   }
 
   results.innerHTML = matches.map(name => {
-    const brain      = (_clubDataIndex[name]?.educator_count > 0) ? ' 🧠' : '';
+    const cd         = _clubDataIndex[name] || {};
+    const brain      = (cd.educator_count > 0) ? ' 🧠' : '';
+    const idStr      = cd.club_id ? ` | ${cd.club_id}` : '';
     const entry      = CLUB_REGION[name];
     const regionLabel = entry?.region?.name || '';
     const safe       = name.replace(/'/g, "\\'");
     return `<div class="search-item" data-name="${name}" onmousedown="selectClub('${safe}')">
-      <span class="search-club">${name}${brain}</span>
-      <span class="search-sep">|</span>
+      <span class="search-club">${name}${idStr}${brain}</span>
+      <span class="search-sep">·</span>
       <span class="search-region">${regionLabel}</span>
     </div>`;
   }).join('');
@@ -1952,12 +2115,26 @@ window.handleKeyNav = function(e) {
 };
 
 document.addEventListener('click', function(e) {
+  // Close search dropdown
   const container = document.getElementById('search-container');
   if (container && !container.contains(e.target)) {
     const results = document.getElementById('search-results');
     if (results) results.style.display = 'none';
   }
+  // Region card expand/collapse
+  const card = e.target.closest('.region-card');
+  if (card && !e.target.closest('.club-tag')) {
+    activateRegion(card.dataset.regionId);
+  }
 });
+
+// ── LEGEND ICONS ───────────────────────────────────────────
+function buildLegendIcons() {
+  const hubEl = document.getElementById('legend-hub');
+  const satEl = document.getElementById('legend-sat');
+  if (hubEl) hubEl.innerHTML = `<div style="width:20px;height:20px;border-radius:50%;background:#fff;border:2.5px solid #555;box-shadow:0 1px 5px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${HUB_ICON}" style="width:17px;height:17px;display:block;mix-blend-mode:multiply;"></div><span>Hub Club</span>`;
+  if (satEl) satEl.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:#fff;border:1.5px solid #888;box-shadow:0 1px 3px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${CLUB_ICON}" style="width:11px;height:11px;display:block;mix-blend-mode:multiply;"></div><span>Satellite Club</span>`;
+}
 
 // ── INIT ───────────────────────────────────────────────────
 buildRegionLayers();
@@ -1969,6 +2146,7 @@ if (allBtn) { allBtn.style.background='#1a1a1a'; allBtn.style.color='#fff'; allB
 initRegionColorPickers();
 loadSavedSettings();
 renderSavedPresets();
+buildLegendIcons();
 initMapData();
 setInterval(initMapData, 300000);
 </script>
