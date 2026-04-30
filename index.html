@@ -130,6 +130,42 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: 
 .legend-title { font-size: 9px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #bbb; margin-bottom: 10px; }
 .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .legend-item { display: flex; align-items: center; gap: 7px; font-size: 9px; color: #888; }
+
+/* ── MOBILE LEGEND OVERLAY ── */
+#mobile-legend {
+  display: none;
+}
+@media (max-width: 768px) {
+  #mobile-legend {
+    display: block;
+    position: fixed;
+    top: 44px;
+    left: 0; right: 0;
+    z-index: 1400;
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    padding: 8px 16px 9px;
+  }
+  #mobile-legend .legend-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 14px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  #mobile-legend .legend-item {
+    flex-shrink: 0;
+    font-size: 9px;
+    color: #666;
+  }
+  body.dark #mobile-legend {
+    background: rgba(18,18,18,0.82);
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  body.dark #mobile-legend .legend-item { color: #888; }
+}
 .l-pin { width: 13px; height: 18px; background: #1a1a1a; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .l-pin-dot { width: 5px; height: 5px; background: #fff; border-radius: 50%; transform: rotate(45deg); }
 .l-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.2); flex-shrink: 0; }
@@ -545,7 +581,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
     border-radius: 14px 14px 0 0;
     box-shadow: 0 -6px 24px rgba(0,0,0,0.15);
     z-index: 1500;
-    transform: translateY(calc(100% - 52px));
+    transform: translateY(calc(100% - 80px));
     transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
   }
@@ -605,8 +641,15 @@ body.dark .search-item.search-active .search-region { color: #666; }
 
   /* Panel footer compact */
   #panel-footer { padding: 0; }
-  #legend-section { padding: 10px 14px 8px; }
+  #legend-section { display: none; }
   #radius-section { padding: 8px 14px 12px; }
+
+  /* Topbar compact — scrollable buttons */
+  #topbar { padding: 0 10px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #topbar::-webkit-scrollbar { display: none; }
+  #topbar-brand { font-size: 11px; flex-shrink: 0; }
+  #topbar-title { font-size: 8px; flex-shrink: 0; }
+  #topbar-spacer { min-width: 4px; }
 }
 </style>
 </head>
@@ -622,6 +665,15 @@ body.dark .search-item.search-active .search-region { color: #666; }
 
   <div id="main">
     <div id="map"></div>
+
+    <div id="mobile-legend">
+      <div class="legend-grid">
+        <div class="legend-item" id="mob-legend-hub"><span>Hub Club</span></div>
+        <div class="legend-item" id="mob-legend-sat"><span>Satellite Club</span></div>
+        <div class="legend-item"><div class="l-ring"></div><span>Cluster Perimeter</span></div>
+        <div class="legend-item"><div class="l-centroid"></div><span>Computed Center</span></div>
+      </div>
+    </div>
 
     <div id="panel">
       <div id="panel-handle" onclick="toggleMobilePanel()" aria-label="Toggle panel"></div>
@@ -2130,10 +2182,10 @@ document.addEventListener('click', function(e) {
 
 // ── LEGEND ICONS ───────────────────────────────────────────
 function buildLegendIcons() {
-  const hubEl = document.getElementById('legend-hub');
-  const satEl = document.getElementById('legend-sat');
-  if (hubEl) hubEl.innerHTML = `<div style="width:20px;height:20px;border-radius:50%;background:#fff;border:2.5px solid #555;box-shadow:0 1px 5px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${HUB_ICON}" style="width:17px;height:17px;display:block;mix-blend-mode:multiply;"></div><span>Hub Club</span>`;
-  if (satEl) satEl.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:#fff;border:1.5px solid #888;box-shadow:0 1px 3px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${CLUB_ICON}" style="width:11px;height:11px;display:block;mix-blend-mode:multiply;"></div><span>Satellite Club</span>`;
+  const hubHTML = `<div style="width:20px;height:20px;border-radius:50%;background:#fff;border:2.5px solid #555;box-shadow:0 1px 5px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${HUB_ICON}" style="width:17px;height:17px;display:block;mix-blend-mode:multiply;"></div><span>Hub Club</span>`;
+  const satHTML = `<div style="width:14px;height:14px;border-radius:50%;background:#fff;border:1.5px solid #888;box-shadow:0 1px 3px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><img src="${CLUB_ICON}" style="width:11px;height:11px;display:block;mix-blend-mode:multiply;"></div><span>Satellite Club</span>`;
+  ['legend-hub','mob-legend-hub'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = hubHTML; });
+  ['legend-sat','mob-legend-sat'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = satHTML; });
 }
 
 // ── INIT ───────────────────────────────────────────────────
