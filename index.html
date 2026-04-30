@@ -589,7 +589,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
     border-radius: 14px 14px 0 0;
     box-shadow: 0 -6px 24px rgba(0,0,0,0.15);
     z-index: 1500;
-    transform: translateY(calc(100% - 108px));
+    transform: translateY(calc(100% - 148px));
     transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
   }
@@ -636,24 +636,35 @@ body.dark .search-item.search-active .search-region { color: #666; }
 
   /* Panel inner layout */
   #panel-title {
-    padding: 10px 16px 10px;
+    padding: 8px 16px 8px;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: row;
-    gap: 0;
+    flex-direction: column;
+    gap: 2px;
     flex-wrap: nowrap;
     border-bottom: 1px solid rgba(0,0,0,0.07);
   }
-  #panel-title h2 { font-size: 11px; flex-shrink: 0; }
+  #panel-title h2 { font-size: 11px; flex-shrink: 0; text-align: center; }
   #panel-title p { display: none; }
-  #panel-metrics { display: none; }
+  #panel-metrics {
+    display: block;
+    text-align: center;
+    margin-top: 2px;
+    width: 100%;
+  }
+  #panel-metrics .metric-row {
+    font-size: 9px;
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
   #mob-title-sep {
     display: inline-block;
-    margin: 0 10px;
+    margin: 0 8px;
     color: #ccc;
-    font-size: 11px;
+    font-size: 10px;
     flex-shrink: 0;
   }
   #mob-cluster-text {
@@ -668,6 +679,9 @@ body.dark .search-item.search-active .search-region { color: #666; }
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Row wrapping sep + cluster text together */
+  #panel-title > span { line-height: 1.4; margin-top: 2px; }
+  #mob-title-sep, #mob-cluster-text { display: none !important; }
   body.dark #mob-title-sep { color: #333; }
   body.dark #mob-cluster-text { color: #555; }
 
@@ -735,7 +749,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
       <div id="panel-title">
         <h2>Equinox Club Portfolio</h2>
         <div id="panel-metrics">
-          <div class="metric-row"><span id="stat-total-coaches">TOTAL COACHES: —</span> &nbsp;&nbsp; <span id="stat-pte">PTE 🧠: —</span></div>
+          <div class="metric-row"><span id="stat-total-coaches">TOTAL COACHES: —</span> &nbsp;&nbsp; <span id="stat-pte">PT EDUCATORS 🧠: —</span></div>
           <div class="metric-row"><span id="stat-coach">COACH: —</span> &nbsp;&nbsp; <span id="stat-coach-plus">COACH<sup>+</sup>: —</span> &nbsp;&nbsp; <span id="stat-coach-x">COACHX: —</span></div>
         </div>
         <span id="mob-title-sep">|</span>
@@ -2209,7 +2223,7 @@ function hydrateMap({ coordsNew, hubSet, regionsNew, clubIdx }) {
   if (elC)   elC.textContent   = `COACH: ${totalCoach}`;
   if (elCP)  elCP.innerHTML    = `COACH<sup>+</sup>: ${totalCoachP}`;
   if (elCX)  elCX.innerHTML    = `COACH<img src="${COACH_X_ICON}" class="coachx-icon" style="height:11px;vertical-align:text-bottom;display:inline;margin:0 0 0 2px;">:${totalCoachX}`;
-  if (elPTE) elPTE.textContent = `PTE 🧠: ${totalPTE}`;
+  if (elPTE) elPTE.textContent = `PT EDUCATORS 🧠: ${totalPTE}`;
 }
 
 // ── LIVE DATA INIT ─────────────────────────────────────────
