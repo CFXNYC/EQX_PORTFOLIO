@@ -214,9 +214,9 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: 
 .leaflet-control-attribution { background: rgba(255,255,255,0.8) !important; color: #aaa !important; }
 
 .popup-inner { padding: 14px 16px; min-width: 220px; }
-.popup-club { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
-.popup-region { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; }
-.popup-hub-badge { display: inline-block; padding: 2px 8px; background: #1a1a1a; color: #fff; font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; border-radius: 1px; margin-bottom: 8px; }
+.popup-club { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; text-align: center; }
+.popup-region { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; text-align: center; }
+.popup-hub-badge { display: block; text-align: center; padding: 2px 8px; background: #1a1a1a; color: #fff; font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; border-radius: 1px; margin-bottom: 8px; }
 .popup-meta { font-size: 10px; color: #999; line-height: 1.9; }
 .popup-meta strong { color: #1a1a1a; }
 
@@ -1511,9 +1511,9 @@ function buildRegionLayers() {
           .setLatLng(coords)
           .setContent(`<div class="popup-inner">
             <div class="popup-club">${name}${cd.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:11px"> | ${cd.club_id}</span>` : ''}</div>
-            <div class="popup-region">${region.name} &mdash; ${region.macro}</div>
+            <div class="popup-region">${region.name.replace(/^.*? - /, '')}</div>
+            ${(cd.coach_x > 0 || cd.educator_count > 0) ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">${cd.coach_x > 0 ? `<img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" style="height:14px;opacity:0.85">` : ''}${cd.educator_count > 0 ? `<span style="font-size:14px;line-height:1">🧠</span>` : ''}</div>` : ''}
             ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
-            ${(cd.coach_x > 0) ? `<div style="margin-bottom:6px"><img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:14px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
             <div class="popup-meta">
               Cluster: <strong>${matched.length} clubs</strong><br/>
               Cluster radius: <strong>${mi} mi</strong><br/>
@@ -1657,10 +1657,10 @@ window.flyToClub = function(clubName, event) {
   map.flyTo(coords, 15, { animate: true, duration: 0.8 });
   const _flyEd = _clubDataIndex[clubName];
   const _popupContent = `<div class="popup-inner" style="padding:10px 14px">
-      <div class="popup-club" style="font-size:12px">${clubName}${_flyEd?.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:10px"> | ${_flyEd.club_id}</span>` : ''}${(_flyEd?.educator_count > 0) ? ' 🧠' : ''}</div>
-      ${region ? `<div class="popup-region">${region.name}</div>` : ''}
+      <div class="popup-club" style="font-size:12px">${clubName}${_flyEd?.club_id ? `<span style="font-weight:400;opacity:0.45;font-size:10px"> | ${_flyEd.club_id}</span>` : ''}</div>
+      ${region ? `<div class="popup-region">${region.name.replace(/^.*? - /, '')}</div>` : ''}
+      ${(_flyEd?.coach_x > 0 || _flyEd?.educator_count > 0) ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">${_flyEd?.coach_x > 0 ? `<img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" style="height:13px;opacity:0.85">` : ''}${_flyEd?.educator_count > 0 ? `<span style="font-size:13px;line-height:1">🧠</span>` : ''}</div>` : ''}
       ${isHub ? '<div class="popup-hub-badge">Hub Club</div>' : ''}
-      ${(_flyEd?.coach_x > 0) ? `<div style="margin-bottom:4px"><img src="${isDark ? COACH_X_ICON_WHITE : COACH_X_ICON}" class="coachx-icon" style="height:13px;vertical-align:middle;display:inline;opacity:0.8;"></div>` : ''}
       ${distToHub ? `<div class="popup-meta" style="margin-top:6px">Distance to <strong>${region.hub}</strong>: <strong>${distToHub} mi</strong></div>` : ''}
       ${(_flyEd?.educator_count > 0) ? `<div class="popup-meta" style="margin-top:4px">Educators: <strong>${_flyEd.educator_count}</strong> 🧠</div>` : ''}
     </div>`;
