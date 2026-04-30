@@ -600,7 +600,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
     flex-shrink: 0;
     background: #fff;
     border-radius: 14px 14px 0 0;
-    touch-action: manipulation;
+    touch-action: none;
     -webkit-tap-highlight-color: transparent;
   }
   #panel-handle::before {
@@ -684,12 +684,15 @@ body.dark .search-item.search-active .search-region { color: #666; }
   #legend-section { display: none; }
   #radius-section { display: none; }
 
-  /* Topbar compact — scrollable buttons */
-  #topbar { padding: 0 10px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Topbar compact — no spacer, all buttons visible */
+  #topbar { padding: 0 10px; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   #topbar::-webkit-scrollbar { display: none; }
   #topbar-brand { font-size: 11px; flex-shrink: 0; }
   #topbar-title { font-size: 8px; flex-shrink: 0; }
-  #topbar-spacer { min-width: 4px; }
+  #topbar-spacer { flex: 0; width: 0; min-width: 0; }
+
+  /* Prevent iOS zoom on search input */
+  #club-search { font-size: 16px; }
 }
 </style>
 </head>
@@ -2269,6 +2272,19 @@ window.handleKeyNav = function(e) {
     _searchActiveIdx = -1;
   }
 };
+
+// ── iOS VIEWPORT ZOOM RESET ────────────────────────────────
+(function() {
+  const searchInput = document.getElementById('club-search');
+  if (!searchInput) return;
+  const vp = document.querySelector('meta[name=viewport]');
+  const base = 'width=device-width, initial-scale=1.0';
+  searchInput.addEventListener('blur', () => {
+    if (!vp) return;
+    vp.content = base + ', maximum-scale=1';
+    setTimeout(() => { vp.content = base; }, 300);
+  }, { passive: true });
+})();
 
 document.addEventListener('click', function(e) {
   // Close search dropdown
