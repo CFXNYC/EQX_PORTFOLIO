@@ -39,6 +39,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: 
 #panel-title { padding: 20px 20px 14px; border-bottom: 1px solid #eee; }
 #panel-title h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 5px; }
 #panel-title p { font-size: 10px; color: #999; line-height: 1.5; }
+#mob-title-sep, #mob-cluster-text { display: none; }
 
 #stats-bar { display: flex; border-bottom: 1px solid #eee; background: #fafafa; }
 .stat-cell { flex: 1; padding: 10px 6px; text-align: center; border-right: 1px solid #eee; }
@@ -581,7 +582,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
     border-radius: 14px 14px 0 0;
     box-shadow: 0 -6px 24px rgba(0,0,0,0.15);
     z-index: 1500;
-    transform: translateY(calc(100% - 80px));
+    transform: translateY(calc(100% - 108px));
     transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
   }
@@ -616,10 +617,49 @@ body.dark .search-item.search-active .search-region { color: #666; }
     pointer-events: none;
   }
 
+  /* Panel — semi-transparent on mobile */
+  #panel {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  #panel-handle { background: rgba(255,255,255,0.88); }
+  body.dark #panel { background: rgba(16,16,16,0.88); }
+  body.dark #panel-handle { background: rgba(16,16,16,0.88); }
+
   /* Panel inner layout */
-  #panel-title { padding: 10px 16px 8px; }
-  #panel-title h2 { font-size: 11px; }
+  #panel-title {
+    padding: 10px 16px 10px;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 0;
+    flex-wrap: nowrap;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+  }
+  #panel-title h2 { font-size: 11px; flex-shrink: 0; }
   #panel-title p { display: none; }
+  #mob-title-sep {
+    display: inline-block;
+    margin: 0 10px;
+    color: #ccc;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  #mob-cluster-text {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #999;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body.dark #mob-title-sep { color: #333; }
+  body.dark #mob-cluster-text { color: #555; }
 
   #stats-bar .stat-cell { padding: 8px 4px; }
   #stats-bar .stat-val { font-size: 15px; }
@@ -642,7 +682,7 @@ body.dark .search-item.search-active .search-region { color: #666; }
   /* Panel footer compact */
   #panel-footer { padding: 0; }
   #legend-section { display: none; }
-  #radius-section { padding: 8px 14px 12px; }
+  #radius-section { display: none; }
 
   /* Topbar compact — scrollable buttons */
   #topbar { padding: 0 10px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -680,6 +720,8 @@ body.dark .search-item.search-active .search-region { color: #666; }
       <div id="panel-title">
         <h2>Equinox Club Portfolio</h2>
         <p>EFTI development workshop locations and regional deployment planning.</p>
+        <span id="mob-title-sep">|</span>
+        <span id="mob-cluster-text">Select a Region</span>
       </div>
 
       <div id="stats-bar">
@@ -1517,6 +1559,7 @@ window.activateRegion = function(regionId, flyMap=true) {
     document.getElementById(`card-${regionId}`)?.classList.remove('active');
     activeRegionId = null;
     document.getElementById('radius-text').textContent = 'SELECT A REGION';
+    document.getElementById('mob-cluster-text').textContent = 'Select a Region';
     document.querySelector('.radius-dot').style.cssText = 'background:#ccc;border:1px solid #aaa;';
     return;
   }
@@ -1530,6 +1573,7 @@ window.activateRegion = function(regionId, flyMap=true) {
   if (layer) {
     const mi = (layer.radiusM/1609.34).toFixed(1);
     document.getElementById('radius-text').textContent = `${layer.region.name.toUpperCase()} — ${mi} MI`;
+    document.getElementById('mob-cluster-text').textContent = `${layer.region.name} — ${mi} mi`;
     const dot = document.querySelector('.radius-dot');
     dot.style.background  = layer.color;
     dot.style.boxShadow   = `0 0 0 3px ${layer.color}44`;
